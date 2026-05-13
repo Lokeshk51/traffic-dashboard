@@ -154,14 +154,6 @@ io.on('connection', async (socket) => {
 });
 
 // ─── Start server ─────────────────────────────────────────────────────────
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`\n✅ Backend running at http://localhost:${PORT}`);
-  console.log(`   API key loaded: ${!!API_KEY}`);
-  console.log(`   Debug endpoint: http://localhost:${PORT}/debug\n`);
-});
-
-
 server.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
 });
