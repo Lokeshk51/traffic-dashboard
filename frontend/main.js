@@ -349,7 +349,7 @@ function changeCity(cityCode) {
   setStatus('Loading...', 'loading');
 
   // Fetch fresh data for new city
-  fetch(`${import.meta.env.VITE_BACKEND_URL}/api/traffic`)
+  fetch(`${import.meta.env.VITE_BACKEND_URL}/api/traffic?city=${currentCity}`)
     .then(r => r.json())
     .then(applyUpdate)
     .catch(() => setStatus('Failed to load city data', 'error'));
@@ -369,7 +369,7 @@ function filterRoads(type) {
   });
 
   // Re-fetch to redraw properly
-  fetch(`${import.meta.env.VITE_BACKEND_URL}/api/traffic`)
+  fetch(`${import.meta.env.VITE_BACKEND_URL}/api/traffic?city=${currentCity}`)
     .then(r => r.json())
     .then(applyUpdate);
 }
@@ -399,13 +399,15 @@ function updateThreshold(value) {
   // Re-run alerts with current data (last fetched)
   const cityDef = CITIES[currentCity];
   // Re-fetch to re-evaluate
-  fetch(`${import.meta.env.VITE_BACKEND_URL}/api/traffic`)
+  fetch(`${import.meta.env.VITE_BACKEND_URL}/api/traffic?city=${currentCity}`)
     .then(r => r.json())
     .then(data => updateAlerts(data.segments));
 }
 
 // ─── Socket.io real-time connection ───────────────────────────────────────
-const socket = io(import.meta.env.VITE_BACKEND_URL);
+const socket = io(import.meta.env.VITE_BACKEND_URL, {
+  transports: ['websocket', 'polling']
+});
 
 socket.on('connect', () => {
   setStatus('Connected — waiting for data...', 'ok');
@@ -431,7 +433,7 @@ socket.on('trafficUpdate', (data) => {
 
 // ─── Initial data fetch ───────────────────────────────────────────────────
 function applyInitialFetch() {
-  fetch(`${import.meta.env.VITE_BACKEND_URL}/api/traffic`)
+  fetch(`${import.meta.env.VITE_BACKEND_URL}/api/traffic?city=${currentCity}`)
     .then(r => r.json())
     .then(applyUpdate)
     .catch(err => setStatus('Could not reach backend — is server.js running?', 'error'));
