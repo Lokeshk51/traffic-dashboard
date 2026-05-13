@@ -349,7 +349,7 @@ function changeCity(cityCode) {
   setStatus('Loading...', 'loading');
 
   // Fetch fresh data for new city
-  fetch(`http://localhost:3000/api/traffic?city=${cityCode}`)
+  fetch(`${import.meta.env.VITE_BACKEND_URL}/api/traffic`)
     .then(r => r.json())
     .then(applyUpdate)
     .catch(() => setStatus('Failed to load city data', 'error'));
@@ -369,7 +369,7 @@ function filterRoads(type) {
   });
 
   // Re-fetch to redraw properly
-  fetch(`http://localhost:3000/api/traffic?city=${currentCity}`)
+  fetch(`${import.meta.env.VITE_BACKEND_URL}/api/traffic`)
     .then(r => r.json())
     .then(applyUpdate);
 }
@@ -399,13 +399,13 @@ function updateThreshold(value) {
   // Re-run alerts with current data (last fetched)
   const cityDef = CITIES[currentCity];
   // Re-fetch to re-evaluate
-  fetch(`http://localhost:3000/api/traffic?city=${currentCity}`)
+  fetch(`${import.meta.env.VITE_BACKEND_URL}/api/traffic`)
     .then(r => r.json())
     .then(data => updateAlerts(data.segments));
 }
 
 // ─── Socket.io real-time connection ───────────────────────────────────────
-const socket = io('http://localhost:3000');
+const socket = io(import.meta.env.VITE_BACKEND_URL);
 
 socket.on('connect', () => {
   setStatus('Connected — waiting for data...', 'ok');
@@ -431,7 +431,7 @@ socket.on('trafficUpdate', (data) => {
 
 // ─── Initial data fetch ───────────────────────────────────────────────────
 function applyInitialFetch() {
-  fetch(`http://localhost:3000/api/traffic?city=${currentCity}`)
+  fetch(`${import.meta.env.VITE_BACKEND_URL}/api/traffic`)
     .then(r => r.json())
     .then(applyUpdate)
     .catch(err => setStatus('Could not reach backend — is server.js running?', 'error'));
