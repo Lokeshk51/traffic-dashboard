@@ -6,26 +6,31 @@ const cors    = require('cors');
 
 const app    = express();
 const server = http.createServer(app);
+
+const API_KEY = process.env.TOMTOM_API_KEY;
+
+// ─── CORS ─────────────────────────────────────────────────────────────────
+app.use(cors({
+  origin: [
+    'http://localhost:5173',
+    process.env.FRONTEND_URL || 'https://your-app.vercel.app'
+  ]
+}));
+
 const io = new Server(server, {
   cors: {
     origin: [
       'http://localhost:5173',
-      'https://traffic-dashboard-lokeshk51s-projects.vercel.app/'  // ← your real URL here
+      process.env.FRONTEND_URL || 'https://your-app.vercel.app'
     ],
-    methods: ['GET', 'POST']
-  }
+    methods: ['GET', 'POST'],
+    credentials: true
+  },
+  transports: ['websocket', 'polling'],
+  allowEIO3: true
 });
 
-app.use(cors({
-  origin: [
-    'http://localhost:5173',
-    'https://traffic-dashboard-lokeshk51s-projects.vercel.app'
-  ]
-}));
-
-const API_KEY = process.env.TOMTOM_API_KEY;
-
-// ─── Road segments per city ──────────────────────────────────────────────
+// ─── Road segments per city ───────────────────────────────────────────────
 const CITY_SEGMENTS = {
   blr: [
     { id:'blr-1', name:'MG Road',         type:'city',    point:'12.9756,77.6099', coords:[[12.9716,77.5946],[12.9796,77.6252]] },
@@ -66,7 +71,8 @@ async function fetchSegment(seg) {
     const url = `https://api.tomtom.com/traffic/services/4/flowSegmentData/absolute/10/json`
       + `?point=${seg.point}&unit=KMPH&key=${API_KEY}`;
 
-    const res  = await fetch(url);
+    const res = await fetch(url);
+
     if (!res.ok) {
       console.warn(`TomTom ${res.status} for ${seg.name}`);
       return { ...seg, congestion: null, error: true };
@@ -130,8 +136,12 @@ app.get('/debug', async (req, res) => {
   res.json({ keyLoaded, tomtomOk, tomtomResponse });
 });
 
+// ─── Health check ─────────────────────────────────────────────────────────
+app.get('/', (req, res) => {
+  res.json({ status: 'ok', message: 'Traffic dashboard backend is running' });
+});
+
 // ─── Real-time push via Socket.io ─────────────────────────────────────────
-// Push updates every 2 minutes per city (stays within free tier)
 const CITIES = Object.keys(CITY_SEGMENTS);
 
 async function pushAllCities() {
@@ -139,21 +149,37 @@ async function pushAllCities() {
     console.log(`Fetching ${city}...`);
     const data = await fetchCityTraffic(city);
     io.emit('trafficUpdate', data);
-    // Small delay between cities to avoid rate spikes
     await new Promise(r => setTimeout(r, 3000));
   }
 }
 
-setInterval(pushAllCities, 2 * 60 * 1000); // every 2 minutes
+setInterval(pushAllCities, 2 * 60 * 1000);
 
-// ─── On client connect: send current city data immediately ────────────────
+// ─── On client connect ────────────────────────────────────────────────────
 io.on('connection', async (socket) => {
-  console.log('Client connected');
+  console.log('Client connected:', socket.id);
   const data = await fetchCityTraffic('blr');
   socket.emit('trafficUpdate', data);
+
+  socket.on('disconnect', () => {
+    console.log('Client disconnected:', socket.id);
+  });
 });
 
-// ─── Start server ─────────────────────────────────────────────────────────
+// ─── Error handlers ───────────────────────────────────────────────────────
+process.on('unhandledRejection', (reason) => {
+  console.error('Unhandled rejection:', reason);
+});
+
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught exception:', err.message);
+});
+
+// ─── Start server (only once, at the very end) ────────────────────────────
+const PORT = process.env.PORT || 3000;
+
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`\n✅ Server running on port ${PORT}`);
+  console.log(`   API key loaded: ${!!API_KEY}`);
+  console.log(`   Debug: http://localhost:${PORT}/debug\n`);
 });
