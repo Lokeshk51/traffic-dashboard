@@ -147,3 +147,9 @@ server.listen(PORT, () => {
   console.log(`   API key loaded: ${!!API_KEY}`);
   console.log(`   Debug endpoint: http://localhost:${PORT}/debug\n`);
 });
+
+const PORT = process.env.PORT || 3000;
+
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server running on port ${PORT}`);
+});
