@@ -6,9 +6,22 @@ const cors    = require('cors');
 
 const app    = express();
 const server = http.createServer(app);
-const io     = new Server(server, { cors: { origin: '*' } });
+const io = new Server(server, {
+  cors: {
+    origin: [
+      'http://localhost:5173',
+      'https://traffic-dashboard-lokeshk51s-projects.vercel.app/'  // ← your real URL here
+    ],
+    methods: ['GET', 'POST']
+  }
+});
 
-app.use(cors());
+app.use(cors({
+  origin: [
+    'http://localhost:5173',
+    'https://traffic-dashboard-lokeshk51s-projects.vercel.app/'
+  ]
+}));
 
 const API_KEY = process.env.TOMTOM_API_KEY;
 
